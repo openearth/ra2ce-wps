@@ -1,0 +1,55 @@
+<wps:Execute xmlns:wps="http://www.opengis.net/wps/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.0.0" service="WPS" xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsAll.xsd">
+    <ows:Identifier xmlns:ows="http://www.opengis.net/ows/1.1">ra2ce_reclassify_probability</ows:Identifier>
+    <wps:DataInputs>
+      
+    <wps:Input>
+      <ows:Identifier xmlns:ows="http://www.opengis.net/ows/1.1">hazard_id</ows:Identifier>
+      <ows:Title xmlns:ows="http://www.opengis.net/ows/1.1">hazard_id</ows:Title>
+      <wps:Data>
+        <wps:LiteralData>therm_expans</wps:LiteralData>
+      </wps:Data>
+    </wps:Input>
+  
+      
+    <wps:Input>
+      <ows:Identifier xmlns:ows="http://www.opengis.net/ows/1.1">value_ranges</ows:Identifier>
+      <ows:Title xmlns:ows="http://www.opengis.net/ows/1.1">value_ranges</ows:Title>
+      <wps:Data>
+        <wps:LiteralData>[
+          {
+            "from": 20,
+            "to": 9999,
+            "class": 1
+          },
+          {
+            "from": 6,
+            "to": 19,
+            "class": 2
+          },
+          {
+            "from": 2,
+            "to": 5,
+            "class": 3
+          },
+          {
+            "from": 0.5,
+            "to": 1,
+            "class": 4
+          },
+          {
+            "from": -9999,
+            "to": 0.4,
+            "class": 5
+          }
+        ]</wps:LiteralData>
+      </wps:Data>
+    </wps:Input>
+  
+       
+    </wps:DataInputs>
+    <wps:ResponseForm>
+      <wps:RawDataOutput mimeType="application/json">
+        <ows:Identifier xmlns:ows="http://www.opengis.net/ows/1.1">output_json</ows:Identifier>
+      </wps:RawDataOutput>
+    </wps:ResponseForm>
+  </wps:Execute>

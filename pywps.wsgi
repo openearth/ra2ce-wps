@@ -41,10 +41,11 @@ import logging
 from processes.ultimate_question import UltimateQuestion
 
 # ra2ce
+from processes.wps_ra2ce_provide_hazard_list import WpsRa2ceProvideHazardList
 
 
 # TODO add the proces in the processes list
-processes = [UltimateQuestion()]
+processes = [UltimateQuestion(), WpsRa2ceProvideHazardList()]
 
 # Description used in template
 process_descriptor = {}
