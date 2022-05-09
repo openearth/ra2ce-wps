@@ -45,7 +45,20 @@
       </wps:Data>
     </wps:Input>
   
-       
+    <wps:Input>
+      <ows:Identifier xmlns:ows="http://www.opengis.net/ows/1.1">priorities_matrix</ows:Identifier>
+      <ows:Title xmlns:ows="http://www.opengis.net/ows/1.1">priorities_matrix</ows:Title>
+      <wps:Data>
+        <wps:ComplexData>[
+         [1,2,3,4],
+         [1,2,3,4],
+         [1,2,3,4],
+         [1,2,3,4],
+         [1,2,3,4],
+        ]</wps:ComplexData>
+      </wps:Data>
+    </wps:Input> 
+
     </wps:DataInputs>
     <wps:ResponseForm>
       <wps:RawDataOutput mimeType="application/json">

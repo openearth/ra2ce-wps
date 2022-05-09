@@ -42,10 +42,15 @@ from processes.ultimate_question import UltimateQuestion
 
 # ra2ce
 from processes.wps_ra2ce_provide_hazard_list import WpsRa2ceProvideHazardList
+from processes.wps_ra2ce_reclassify_probability import WpsRa2ceReclassifyProbability
 
 
 # TODO add the proces in the processes list
-processes = [UltimateQuestion(), WpsRa2ceProvideHazardList()]
+processes = [
+    UltimateQuestion(),
+    WpsRa2ceProvideHazardList(),
+    WpsRa2ceReclassifyProbability(),
+]
 
 # Description used in template
 process_descriptor = {}
