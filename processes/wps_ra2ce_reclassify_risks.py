@@ -48,19 +48,14 @@ from sqlalchemy import create_engine
 from .ra2ce_utils import read_config
 
 
-class WpsRa2ceReclassifyProbability(Process):
+class WpsRa2ceReclassifyRisks(Process):
     def __init__(self):
-        # Input [in json format] - no inputs
-        inputs = []  # no inputs
 
-        # Output [in json format]
         inputs = [
-            LiteralInput("hazard_id", "name of hazard in db", data_type="string"),
-            ComplexInput(
-                "value_ranges",
-                "array of ranges of classes",
-                supported_formats=[Format("application/json")],
+            LiteralInput(
+                "temp_layer", "temp_layer name in the database", data_type="string"
             ),
+            LiteralInput("hazard_id", "hazard_id  in the database", data_type="string"),
             LiteralInput(
                 "priorities_matrix",
                 "matrix with priorities",
@@ -75,12 +70,12 @@ class WpsRa2ceReclassifyProbability(Process):
             )
         ]
 
-        super(WpsRa2ceReclassifyProbability, self).__init__(
+        super(WpsRa2ceReclassifyRisks, self).__init__(
             self._handler,
-            identifier="ra2ce_reclassify_probability",
+            identifier="ra2ce_reclassify_risks",
             version="1.0",
-            title="backend process for the RA2CE 2.0 version, reclassifies the probability layer",
-            abstract="It reclassifies the probability layer based on the given classes borders",
+            title="backend process for the RA2CE 2.0 version, reclassifies the risk layer",
+            abstract="It reclassifies the risk layer based on the given priorities matrix",
             profile="",
             inputs=inputs,
             outputs=outputs,
@@ -124,45 +119,24 @@ class WpsRa2ceReclassifyProbability(Process):
             strategy="threadlocal",
         )
 
-        # 3. read from request hazard_id and value_ranges
+        # 3. read from request hazard_id and priorities_matrix
+        # temp_id = int(1000000 * time.time())
+        temp_layer = request.inputs["temp_layer"][0].data
         hazard_id = request.inputs["hazard_id"][0].data
-        ranges = json.loads(request.inputs["value_ranges"][0].data)
-
         priorities_matrix_str = request.inputs["priorities_matrix"][0].data
-
         priorities_matrix = json.loads(priorities_matrix_str)
-
-        # TODO: create a function with below
-        # TODO: need the hazard name
-        # 4. hazard_id has the same name as the table in the database, so ra2ce_2_0.hazard_id create a new table with a temp name
-        temp_id = int(1000000 * time.time())
-        temp_layer = f"{hazard_id}{temp_id}"
+        temp_id = temp_id = int(1000000 * time.time())
         print(temp_layer)
-
-        strSql = f"create table temp.{temp_layer} as select id, geom, fid, kans, kans_klasse, amsheep_klasse from ra2ce_2_0.{hazard_id};"
+        strSql = f"create table temp.{temp_layer}_priorities_{temp_id} as select id, geom, fid, kans_klasse, amsheep_klasse, priority from temp.{temp_layer}_priorities;"
         resSql = engine.execute(strSql)
-        # 5. Update table.
-        for r in ranges:
-            strSql = f"update temp.{temp_layer} set kans_klasse = {r['class']} where kans between {r['from']} and {r['to']} "
-            resSql = engine.execute(strSql)
-
-        # 6. Upload new geoserver layer with same name as the temp table on geoserver with styling name equal to the classes range, eg 5 6, 7 8
-
-        # 7.1 create priorities table each time a reclassification of the probabilities happens
-        strSql = f"create table temp.{temp_layer}_priorities as select id, geom, fid, kans_klasse, amsheep_klasse from ra2ce_2_0.{hazard_id};"
-        resSql = engine.execute(strSql)
-
-        # 7.2 alter table and add column priority
-        strSql = f"alter table temp.{temp_layer}_priorities add priority INT;"
-        resSql = engine.execute(strSql)
-
+        print("temp_id", temp_id)
         # 7.3 update values in the priority column based on the priorities_matrix
         # This procedure is a copy paste of the ra2ceutils.py calccosts functionality
 
         for probability_index in range(len(priorities_matrix)):
             for impact_index in range(len(priorities_matrix[probability_index])):
                 # print(probability_index, impact_index)
-                strSql = f"update temp.{temp_layer}_priorities set priority = {priorities_matrix[probability_index][impact_index]} where kans_klasse = {probability_index +1 } and amsheep_klasse = {impact_index + 1}"
+                strSql = f"update temp.{temp_layer}_priorities_{temp_id} set priority = {priorities_matrix[probability_index][impact_index]} where kans_klasse = {probability_index +1 } and amsheep_klasse = {impact_index + 1}"
                 resSql = engine.execute(strSql)
 
         resSql.close()
@@ -181,51 +155,31 @@ class WpsRa2ceReclassifyProbability(Process):
         )
         datastore = cat.get_store("temp")
 
-        ft_kans = cat.publish_featuretype(  # TODO: give a proper layer name that includes kans
-            f"{temp_layer}",
-            datastore,
-            native_crs="EPSG:28992",
-            jdbc_virtual_table="",
-        )
-        cat.save(ft_kans)
-
         ft_priorities = cat.publish_featuretype(
-            f"{temp_layer}_priorities",
+            f"{temp_layer}_priorities_{temp_id}",
             datastore,
             native_crs="EPSG:28992",
             jdbc_virtual_table="",
         )
         cat.save(ft_priorities)
 
-        kan_layer = cat.get_layer(f"{temp_layer}")
-        priorities_layer = cat.get_layer(f"{temp_layer}_priorities")
+        priorities_layer = cat.get_layer(f"{temp_layer}_priorities_{temp_id}")
 
         style = "ra2ce_kans_default"
 
         # set style and save layer
         # layer._set_default_style(style)
-        kan_layer.default_style = style
+
         priorities_layer.default_style = style
-        cat.save(kan_layer)
         cat.save(priorities_layer)
 
         # except Exception as e:
         #    res = {"errMsg": "ERROR: {}".format(e)}
         #    logging.info("""WPS [WpsRa2ceProvideHazardList]: ERROR = {}""".format(e))
         res = {
-            "tempId": temp_layer,
-            "layers": [
-                {
-                    "id": f"{hazard_id}_kans",
-                    "name": f"{hazard_id} kans",  # have to remove the _
-                    "layer": f"ra2ce:{temp_layer}",
-                },
-                {
-                    "id": f"{hazard_id}_risks",
-                    "name": f"{hazard_id} risks",
-                    "layer": f"ra2ce:{temp_layer}_priorities",
-                },
-            ],
+            "id": f"{hazard_id}_risks",
+            "name": f"{hazard_id} risks",
+            "layer": f"ra2ce:{temp_layer}_priorities_{temp_id}",
         }
 
         response.outputs["output_json"].data = json.dumps(res)
