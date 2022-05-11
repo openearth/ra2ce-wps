@@ -127,7 +127,8 @@ class WpsRa2ceReclassifyProbability(Process):
         # 3. read from request hazard_id and value_ranges
         hazard_id = request.inputs["hazard_id"][0].data
         ranges = json.loads(request.inputs["value_ranges"][0].data)
-
+        classes = len(ranges)
+        print("classes", classes)
         priorities_matrix_str = request.inputs["priorities_matrix"][0].data
 
         priorities_matrix = json.loads(priorities_matrix_str)
@@ -197,15 +198,26 @@ class WpsRa2ceReclassifyProbability(Process):
         )
         cat.save(ft_priorities)
 
+        if classes == 3:
+            style = "ra2ce_kans_3_classes"
+        elif classes == 4:
+            style = "ra2ce_kans_4_classes"
+        elif classes == 5:
+            style = "ra2ce_kans_default"
+        elif classes == 6:
+            style = "ra2ce_kans_6_classes"
+        elif classes == 7:
+            style = "ra2ce_kans_7_classes"
+        else:
+            style = "ra2ce_kans_8_classes"
+
         kan_layer = cat.get_layer(f"{temp_layer}")
         priorities_layer = cat.get_layer(f"{temp_layer}_priorities")
-
-        style = "ra2ce_kans_default"
 
         # set style and save layer
         # layer._set_default_style(style)
         kan_layer.default_style = style
-        priorities_layer.default_style = style
+        priorities_layer.default_style = "ra2ce_risks"
         cat.save(kan_layer)
         cat.save(priorities_layer)
 

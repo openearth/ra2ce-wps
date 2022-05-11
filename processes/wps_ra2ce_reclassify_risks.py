@@ -165,7 +165,7 @@ class WpsRa2ceReclassifyRisks(Process):
 
         priorities_layer = cat.get_layer(f"{temp_layer}_priorities_{temp_id}")
 
-        style = "ra2ce_kans_default"
+        style = "ra2ce_risks"
 
         # set style and save layer
         # layer._set_default_style(style)
